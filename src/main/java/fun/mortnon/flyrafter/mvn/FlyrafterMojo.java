@@ -1,6 +1,5 @@
 package fun.mortnon.flyrafter.mvn;
 
-import com.sun.org.apache.xml.internal.security.utils.resolver.ResourceResolver;
 import fun.mortnon.flyrafter.mvn.base.FlyrafterExecutor;
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
@@ -10,6 +9,10 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.Enumeration;
 import java.util.List;
 
 /**
@@ -24,11 +27,15 @@ public class FlyrafterMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project.build.resources}", readonly = true, required = true)
     private List<Resource> resources;
 
+    @Parameter(defaultValue = "${project.compileClasspathElements}", readonly = true, required = true)
+    private List<String> compilePaths;
+
     private FlyrafterExecutor executor;
 
     public void execute() throws MojoExecutionException, MojoFailureException {
         getLog().info("FlyRafter Startup.");
-        executor = new FlyrafterExecutor(resources);
+        executor = new FlyrafterExecutor(this.compilePaths);
+        executor.startup();
         getLog().info("FlyRafter Terminate.");
     }
 }

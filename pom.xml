@@ -47,10 +47,18 @@
                     <plugin>
                         <groupId>fun.mortnon</groupId>
                         <artifactId>flyrafter-maven-plugin</artifactId>
-                        <version>0.0.2-SNAPSHOT</version>
+                        <version>0.0.1-SNAPSHOT</version>
                     </plugin>
                 </plugins>
             </build>
+            <dependencies>
+                <dependency>
+                    <groupId>org.projectlombok</groupId>
+                    <artifactId>lombok</artifactId>
+                    <version>1.18.12</version>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
         </profile>
         <profile>
             <id>release</id>
@@ -133,7 +141,7 @@
         <maven.version>3.3.9</maven.version>
         <mvn-api-version>3.8.1</mvn-api-version>
         <mvn-annotations-version>3.6.1</mvn-annotations-version>
-        <flyrafter.version>0.0.2</flyrafter.version>
+        <flyrafter.version>0.0.3-SNAPSHOT</flyrafter.version>
     </properties>
 
     <dependencies>

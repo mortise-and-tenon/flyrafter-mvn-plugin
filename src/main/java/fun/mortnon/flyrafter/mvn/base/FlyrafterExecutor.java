@@ -5,10 +5,13 @@ import fun.mortnon.flyrafter.FlyRafterBuilder;
 import fun.mortnon.flyrafter.configuration.FlyRafterConfiguration;
 import fun.mortnon.flyrafter.mvn.resolver.ResourceFactory;
 import fun.mortnon.flyrafter.mvn.utils.Utils;
+import fun.mortnon.flyrafter.resolver.FlyRafterUtils;
 import org.apache.maven.model.Resource;
 
 import javax.sql.DataSource;
 import java.io.File;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.*;
 
 /**
@@ -16,25 +19,26 @@ import java.util.*;
  * @date 2021/5/14
  */
 public class FlyrafterExecutor {
-    private List<Resource> resources;
+    private List<String> compilePaths;
 
-    public FlyrafterExecutor(List<Resource> resources) {
-        this.resources = resources;
+    public FlyrafterExecutor(List<String> compilePaths) {
+        this.compilePaths = compilePaths;
     }
 
     public void startup() {
-        Optional.ofNullable(resources).ifPresent(list -> list.forEach(resource -> resolveResource(resource)));
+        Optional.ofNullable(compilePaths).ifPresent(paths -> paths.forEach(path -> resolveResource(path)));
     }
 
-    private void resolveResource(Resource resource) {
-        String directory = resource.getDirectory();
-        File dir = new File(directory);
+    private void resolveResource(String path) {
+        File dir = new File(path);
         if (dir.exists() && dir.isDirectory()) {
             Set<File> files = matchFile(dir);
             Map<String, Object> configurationMap = new HashMap<>();
             files.forEach(k -> {
                 Map<String, Object> map = ResourceFactory.getResolver(k).resolveResource(k);
-                configurationMap.putAll(map);
+                if (null != map) {
+                    configurationMap.putAll(map);
+                }
             });
             executeFlyRafter(configurationMap);
         } else {
@@ -46,11 +50,12 @@ public class FlyrafterExecutor {
         Set<File> fileList = new HashSet<>();
         for (File f : dir.listFiles()) {
             if (f.isDirectory()) {
-                fileList.addAll(matchFile(dir));
-            }
-            String name = f.getName();
-            if (Utils.mathConfigurationFile(name)) {
-                fileList.add(f);
+                fileList.addAll(matchFile(f));
+            } else {
+                String name = f.getName();
+                if (Utils.mathConfigurationFile(name)) {
+                    fileList.add(f);
+                }
             }
         }
         return fileList;
@@ -64,7 +69,9 @@ public class FlyrafterExecutor {
     private void executeFlyRafter(Map<String, Object> configurationMap) {
         FlyRafterConfiguration flyRafterConfiguration = addConfiguration(configurationMap);
         DataSource dataSource = addDatasource();
-        FlyRafter flyRafter = new FlyRafterBuilder(flyRafterConfiguration, dataSource).build();
+        ClassLoader classLoader = getClassLoader();
+        FlyRafter flyRafter = new FlyRafterBuilder(flyRafterConfiguration, dataSource, classLoader).build();
+        FlyRafterUtils.setClassLoader(classLoader);
         flyRafter.startup();
     }
 
@@ -90,4 +97,21 @@ public class FlyrafterExecutor {
         DataSource dataSource = null;
         return dataSource;
     }
+
+    private ClassLoader getClassLoader() {
+        try {
+            // 转为 URL 数组
+            URL urls[] = new URL[compilePaths.size()];
+            for (int i = 0; i < compilePaths.size(); i++) {
+                urls[i] = new File(compilePaths.get(i)).toURI().toURL();
+            }
+            // 自定义类加载器
+            return new URLClassLoader(urls, this.getClass().getClassLoader());
+        } catch (Exception e) {
+            Utils.LOGGER.debug("Couldn't get the classloader.");
+            return null;
+        }
+    }
+
+
 }
