@@ -7,6 +7,7 @@ import fun.mortnon.flyrafter.mvn.resolver.ResourceFactory;
 import fun.mortnon.flyrafter.mvn.utils.Utils;
 import fun.mortnon.flyrafter.resolver.FlyRafterUtils;
 import org.apache.maven.model.Resource;
+import org.springframework.boot.autoconfigure.flyway.FlywayProperties;
 
 import javax.sql.DataSource;
 import java.io.File;
@@ -83,7 +84,45 @@ public class FlyrafterExecutor {
      */
     private FlyRafterConfiguration addConfiguration(Map<String, Object> configurationMap) {
         FlyRafterConfiguration flyRafterConfiguration = new FlyRafterConfiguration();
-        //TODO:如果未启用相应功能，返回null，不进行相应操作
+
+        if (configurationMap.containsKey(Commons.FLYRAFTER + Commons.ENABLED)) {
+            flyRafterConfiguration.setEnabled(Boolean.valueOf(String.valueOf(configurationMap.get(Commons.FLYRAFTER + Commons.ENABLED))));
+        }
+
+        if (configurationMap.containsKey(Commons.FLYRAFTER + Commons.VERSION_PATTERN)) {
+            flyRafterConfiguration.setVersionPattern(String.valueOf(configurationMap.get(Commons.FLYRAFTER + Commons.VERSION_PATTERN)));
+        }
+
+        if (configurationMap.containsKey(Commons.FLYRAFTER + Commons.LOCATIONS)) {
+            ArrayList<String> locations = (ArrayList<String>) configurationMap.get(Commons.FLYRAFTER + Commons.LOCATIONS);
+            flyRafterConfiguration.setLocations(locations);
+        }
+
+        if (configurationMap.containsKey(Commons.FLYRAFTER + Commons.BACKUP)) {
+            flyRafterConfiguration.setBackup(String.valueOf(configurationMap.get(Commons.FLYRAFTER + Commons.BACKUP)));
+        }
+
+        if (configurationMap.containsKey(Commons.FLYRAFTER + Commons.MAP_TO_UNDERSCORE)) {
+            flyRafterConfiguration.setMapToUnderscore(Boolean.valueOf(String.valueOf(configurationMap.get(Commons.FLYRAFTER + Commons.MAP_TO_UNDERSCORE))));
+        }
+
+        FlywayProperties flywayProperties = new FlywayProperties();
+
+        if (configurationMap.containsKey(Commons.FLYWAY + Commons.PREFIX)) {
+            flywayProperties.setSqlMigrationPrefix(String.valueOf(configurationMap.get(Commons.FLYWAY + Commons.PREFIX)));
+        }
+
+        if (configurationMap.containsKey(Commons.FLYWAY + Commons.SEPARATOR)) {
+            flywayProperties.setSqlMigrationSeparator(String.valueOf(configurationMap.get(Commons.FLYWAY + Commons.SEPARATOR)));
+        }
+
+        if (configurationMap.containsKey(Commons.FLYWAY + Commons.SUFFIX)) {
+            ArrayList<String> suffix = (ArrayList<String>) configurationMap.get(Commons.FLYWAY + Commons.SUFFIX);
+            flywayProperties.setSqlMigrationSuffixes(suffix);
+        }
+
+        flyRafterConfiguration.setFlywayProperties(flywayProperties);
+
         return flyRafterConfiguration;
     }
 

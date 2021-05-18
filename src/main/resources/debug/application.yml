@@ -10,3 +10,6 @@ spring:
 
 flyrafter:
   enabled: false
+  locations:
+    - classpath:db/flyrafter
+  backup: classpath:db/flyrfater-backup
