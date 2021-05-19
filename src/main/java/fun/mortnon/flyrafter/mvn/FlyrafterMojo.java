@@ -21,11 +21,8 @@ import java.util.List;
  */
 @Mojo(name = "generate")
 public class FlyrafterMojo extends AbstractMojo {
-    @Parameter(defaultValue = "${basedir}")
-    private File baseDir;
-
-    @Parameter(defaultValue = "${project.build.resources}", readonly = true, required = true)
-    private List<Resource> resources;
+    @Parameter(defaultValue = "${basedir}/src/main/resources")
+    private File resourceFolder;
 
     @Parameter(defaultValue = "${project.compileClasspathElements}", readonly = true, required = true)
     private List<String> compilePaths;
@@ -34,7 +31,7 @@ public class FlyrafterMojo extends AbstractMojo {
 
     public void execute() throws MojoExecutionException, MojoFailureException {
         getLog().info("FlyRafter Startup.");
-        executor = new FlyrafterExecutor(this.compilePaths);
+        executor = new FlyrafterExecutor(this.compilePaths,this.resourceFolder);
         executor.startup();
         getLog().info("FlyRafter Terminate.");
     }

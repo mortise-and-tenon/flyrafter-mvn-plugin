@@ -3,14 +3,18 @@ package fun.mortnon.flyrafter.mvn.base;
 import fun.mortnon.flyrafter.FlyRafter;
 import fun.mortnon.flyrafter.FlyRafterBuilder;
 import fun.mortnon.flyrafter.configuration.FlyRafterConfiguration;
+import fun.mortnon.flyrafter.mvn.db.H2DataSource;
 import fun.mortnon.flyrafter.mvn.resolver.ResourceFactory;
 import fun.mortnon.flyrafter.mvn.utils.Utils;
+import fun.mortnon.flyrafter.resolver.Constants;
 import fun.mortnon.flyrafter.resolver.FlyRafterUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.maven.model.Resource;
 import org.springframework.boot.autoconfigure.flyway.FlywayProperties;
 
 import javax.sql.DataSource;
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
@@ -21,9 +25,11 @@ import java.util.*;
  */
 public class FlyrafterExecutor {
     private List<String> compilePaths;
+    private File resourceFolder;
 
-    public FlyrafterExecutor(List<String> compilePaths) {
+    public FlyrafterExecutor(List<String> compilePaths, File resourceFolder) {
         this.compilePaths = compilePaths;
+        this.resourceFolder = resourceFolder;
     }
 
     public void startup() {
@@ -74,6 +80,7 @@ public class FlyrafterExecutor {
         FlyRafter flyRafter = new FlyRafterBuilder(flyRafterConfiguration, dataSource, classLoader).build();
         FlyRafterUtils.setClassLoader(classLoader);
         flyRafter.startup();
+        copyToSource(flyRafterConfiguration);
     }
 
     /**
@@ -121,6 +128,11 @@ public class FlyrafterExecutor {
             flywayProperties.setSqlMigrationSuffixes(suffix);
         }
 
+        if (configurationMap.containsKey(Commons.FLYWAY + Commons.LOCATIONS)) {
+            ArrayList<String> locations = (ArrayList<String>) configurationMap.get(Commons.FLYWAY + Commons.LOCATIONS);
+            flywayProperties.setLocations(locations);
+        }
+
         flyRafterConfiguration.setFlywayProperties(flywayProperties);
 
         return flyRafterConfiguration;
@@ -132,9 +144,14 @@ public class FlyrafterExecutor {
      * @return
      */
     private DataSource addDatasource() {
-        //TODO:
         DataSource dataSource = null;
-        return dataSource;
+        try {
+            dataSource = H2DataSource.create();
+            return dataSource;
+        } catch (Exception e) {
+            Utils.LOGGER.error("create h2 datasource fail.", e);
+            return null;
+        }
     }
 
     private ClassLoader getClassLoader() {
@@ -150,6 +167,31 @@ public class FlyrafterExecutor {
             Utils.LOGGER.debug("Couldn't get the classloader.");
             return null;
         }
+    }
+
+    /**
+     * 将生成的文件复制到源目录中
+     *
+     * @param flyRafterConfiguration
+     */
+    private void copyToSource(FlyRafterConfiguration flyRafterConfiguration) {
+        List<String> locations = flyRafterConfiguration.getLocations();
+        compilePaths.forEach(k -> {
+            locations.forEach(folder -> {
+                String compilePath = k + File.separator + folder.replace(Constants.CLASSPATH, "");
+                String sourcePath = resourceFolder.getPath() + File.separator + folder.replace(Constants.CLASSPATH, "");
+                File compileFile = new File(compilePath);
+                File sourceFile = new File(sourcePath);
+                if (!sourceFile.exists()) {
+                    sourceFile.mkdirs();
+                }
+                try {
+                    FileUtils.copyDirectory(compileFile, sourceFile);
+                } catch (IOException e) {
+                    Utils.LOGGER.error("copy sql to source folder fail.");
+                }
+            });
+        });
     }
 
 
