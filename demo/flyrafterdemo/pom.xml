@@ -67,12 +67,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>fun.mortnon</groupId>
-			<artifactId>flyrafter</artifactId>
-			<version>0.0.2</version>
-		</dependency>
-
-		<dependency>
 			<groupId>jakarta.persistence</groupId>
 			<artifactId>jakarta.persistence-api</artifactId>
 			<version>${jpa.version}</version>
@@ -111,7 +105,7 @@
 			<plugin>
 				<groupId>fun.mortnon</groupId>
 				<artifactId>flyrafter-maven-plugin</artifactId>
-				<version>0.0.2-SNAPSHOT</version>
+				<version>0.0.1</version>
 				<executions>
 					<execution>
 						<phase>compile</phase>
