@@ -3,13 +3,14 @@ package fun.mortnon.flyrafter.mvn.base;
 import fun.mortnon.flyrafter.FlyRafter;
 import fun.mortnon.flyrafter.FlyRafterBuilder;
 import fun.mortnon.flyrafter.configuration.FlyRafterConfiguration;
-import fun.mortnon.flyrafter.mvn.db.H2DataSource;
+import fun.mortnon.flyrafter.mvn.db.DbExecutor;
+import fun.mortnon.flyrafter.mvn.db.DatasourceFactory;
 import fun.mortnon.flyrafter.mvn.resolver.ResourceFactory;
 import fun.mortnon.flyrafter.mvn.utils.Utils;
 import fun.mortnon.flyrafter.resolver.Constants;
 import fun.mortnon.flyrafter.resolver.FlyRafterUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.maven.model.Resource;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.autoconfigure.flyway.FlywayProperties;
 
 import javax.sql.DataSource;
@@ -26,6 +27,9 @@ import java.util.*;
 public class FlyrafterExecutor {
     private List<String> compilePaths;
     private File resourceFolder;
+
+    private List<File> compileFiles = new ArrayList<>();
+    private List<File> sourceFiles = new ArrayList<>();
 
     public FlyrafterExecutor(List<String> compilePaths, File resourceFolder) {
         this.compilePaths = compilePaths;
@@ -75,12 +79,13 @@ public class FlyrafterExecutor {
      */
     private void executeFlyRafter(Map<String, Object> configurationMap) {
         FlyRafterConfiguration flyRafterConfiguration = addConfiguration(configurationMap);
-        DataSource dataSource = addDatasource();
+        generateFolder(flyRafterConfiguration);
+        DataSource dataSource = addDatasource(configurationMap);
         ClassLoader classLoader = getClassLoader();
         FlyRafter flyRafter = new FlyRafterBuilder(flyRafterConfiguration, dataSource, classLoader).build();
         FlyRafterUtils.setClassLoader(classLoader);
         flyRafter.startup();
-        copyToSource(flyRafterConfiguration);
+        copyToSource();
     }
 
     /**
@@ -143,16 +148,51 @@ public class FlyrafterExecutor {
      *
      * @return
      */
-    private DataSource addDatasource() {
+    private DataSource addDatasource(Map<String, Object> configurationMap) {
         DataSource dataSource = null;
         try {
-            dataSource = H2DataSource.create();
+            String url = null;
+            String driver = null;
+            String username = null;
+            String password = null;
+
+            for (String key : configurationMap.keySet()) {
+                if (key.startsWith(Commons.DATASOURCE)) {
+                    if (key.endsWith(Commons.URL)) {
+                        if (StringUtils.isBlank(url)) {
+                            url = String.valueOf(configurationMap.get(key));
+                        }
+                    }
+
+                    if (key.endsWith(Commons.DRIVER)) {
+                        driver = String.valueOf(configurationMap.get(key));
+                    }
+
+                    if (key.endsWith(Commons.USERNAME)) {
+                        username = String.valueOf(configurationMap.get(key));
+                    }
+
+                    if (key.endsWith(Commons.PASSWORD)) {
+                        password = String.valueOf(configurationMap.get(key));
+                    }
+                }
+            }
+
+            dataSource = DatasourceFactory.create(url, driver, username, password);
+
+            //TODO:当前直接连接本地环境的数据库。后续应该使用模拟数据库执行现有sql，再用于flyrafter比较生成sql文件。
+//            if (null != compileFiles && compileFiles.size() > 0) {
+//                DbExecutor dbExecutor = new DbExecutor(dataSource);
+//                compileFiles.forEach(k -> dbExecutor.executeSql(k));
+//            }
+
             return dataSource;
         } catch (Exception e) {
             Utils.LOGGER.error("create h2 datasource fail.", e);
             return null;
         }
     }
+
 
     private ClassLoader getClassLoader() {
         try {
@@ -171,10 +211,20 @@ public class FlyrafterExecutor {
 
     /**
      * 将生成的文件复制到源目录中
-     *
-     * @param flyRafterConfiguration
      */
-    private void copyToSource(FlyRafterConfiguration flyRafterConfiguration) {
+    private void copyToSource() {
+        compileFiles.forEach(compileFile -> {
+            sourceFiles.forEach(sourceFile -> {
+                try {
+                    FileUtils.copyDirectory(compileFile, sourceFile);
+                } catch (IOException e) {
+                    Utils.LOGGER.error("copy sql to source folder fail.");
+                }
+            });
+        });
+    }
+
+    private void generateFolder(FlyRafterConfiguration flyRafterConfiguration) {
         List<String> locations = flyRafterConfiguration.getLocations();
         compilePaths.forEach(k -> {
             locations.forEach(folder -> {
@@ -185,11 +235,8 @@ public class FlyrafterExecutor {
                 if (!sourceFile.exists()) {
                     sourceFile.mkdirs();
                 }
-                try {
-                    FileUtils.copyDirectory(compileFile, sourceFile);
-                } catch (IOException e) {
-                    Utils.LOGGER.error("copy sql to source folder fail.");
-                }
+                compileFiles.add(compileFile);
+                sourceFiles.add(sourceFile);
             });
         });
     }
