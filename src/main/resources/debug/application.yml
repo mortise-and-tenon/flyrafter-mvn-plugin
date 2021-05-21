@@ -1,7 +1,0 @@
-spring:
-  flyway:
-    locations:
-      - classpath:debug/db/migration
-flyrafter:
-  enabled: false
-  backup: classpath:debug/flyrfater-backup
