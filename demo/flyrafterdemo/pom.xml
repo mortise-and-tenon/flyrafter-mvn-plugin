@@ -105,7 +105,12 @@
 			<plugin>
 				<groupId>fun.mortnon</groupId>
 				<artifactId>flyrafter-maven-plugin</artifactId>
-				<version>0.0.1</version>
+				<version>0.0.2</version>
+				<configuration>
+					<includePackages>
+						<package>com.baomidou</package>
+					</includePackages>
+				</configuration>
 				<executions>
 					<execution>
 						<phase>compile</phase>
