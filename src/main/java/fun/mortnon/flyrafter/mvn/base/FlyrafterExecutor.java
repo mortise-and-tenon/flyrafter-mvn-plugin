@@ -3,14 +3,14 @@ package fun.mortnon.flyrafter.mvn.base;
 import fun.mortnon.flyrafter.FlyRafter;
 import fun.mortnon.flyrafter.FlyRafterBuilder;
 import fun.mortnon.flyrafter.configuration.FlyRafterConfiguration;
-import fun.mortnon.flyrafter.mvn.db.DbExecutor;
 import fun.mortnon.flyrafter.mvn.db.DatasourceFactory;
 import fun.mortnon.flyrafter.mvn.resolver.ResourceFactory;
 import fun.mortnon.flyrafter.mvn.utils.Utils;
 import fun.mortnon.flyrafter.resolver.Constants;
-import fun.mortnon.flyrafter.resolver.FlyRafterUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.maven.artifact.DependencyResolutionRequiredException;
+import org.apache.maven.project.MavenProject;
 import org.springframework.boot.autoconfigure.flyway.FlywayProperties;
 
 import javax.sql.DataSource;
@@ -25,15 +25,26 @@ import java.util.*;
  * @date 2021/5/14
  */
 public class FlyrafterExecutor {
-    private List<String> compilePaths;
+    private List<String> compilePaths = new ArrayList<>();
     private File resourceFolder;
+    private MavenProject project;
+
+    private List<String> includePackages;
 
     private List<File> compileFiles = new ArrayList<>();
     private List<File> sourceFiles = new ArrayList<>();
 
-    public FlyrafterExecutor(List<String> compilePaths, File resourceFolder) {
-        this.compilePaths = compilePaths;
+    public FlyrafterExecutor(File resourceFolder, MavenProject project, List<String> includePackages) {
         this.resourceFolder = resourceFolder;
+        this.project = project;
+
+        this.includePackages = includePackages;
+
+        try {
+            this.compilePaths = project.getCompileClasspathElements();
+        } catch (DependencyResolutionRequiredException e) {
+            Utils.LOGGER.error("load compile class path fail for " + e);
+        }
     }
 
     public void startup() {
@@ -81,9 +92,9 @@ public class FlyrafterExecutor {
         FlyRafterConfiguration flyRafterConfiguration = addConfiguration(configurationMap);
         generateFolder(flyRafterConfiguration);
         DataSource dataSource = addDatasource(configurationMap);
-        ClassLoader classLoader = getClassLoader();
-        FlyRafter flyRafter = new FlyRafterBuilder(flyRafterConfiguration, dataSource, classLoader).build();
-        FlyRafterUtils.setClassLoader(classLoader);
+        URLClassLoader classLoader = getClassLoader();
+
+        FlyRafter flyRafter = new FlyRafterBuilder(flyRafterConfiguration, dataSource, classLoader, includePackages).build();
         flyRafter.startup();
         copyToSource();
     }
@@ -188,26 +199,35 @@ public class FlyrafterExecutor {
 
             return dataSource;
         } catch (Exception e) {
-            Utils.LOGGER.error("create h2 datasource fail.", e);
+            Utils.LOGGER.error("create datasource fail.", e);
             return null;
         }
     }
 
 
-    private ClassLoader getClassLoader() {
+    private URLClassLoader getClassLoader() {
         try {
             // 转为 URL 数组
-            URL urls[] = new URL[compilePaths.size()];
+            List<URL> urls = new ArrayList<>();
+
             for (int i = 0; i < compilePaths.size(); i++) {
-                urls[i] = new File(compilePaths.get(i)).toURI().toURL();
+                String filePath = compilePaths.get(i);
+                if (filePath.endsWith(".jar")) {
+                    urls.add(new URL("jar:" + new File(filePath).toURI().toURL() + "!/"));
+                } else {
+                    urls.add(new File(filePath).toURI().toURL());
+                }
             }
             // 自定义类加载器
-            return new URLClassLoader(urls, this.getClass().getClassLoader());
-        } catch (Exception e) {
+            return new URLClassLoader(urls.toArray(new URL[urls.size()]), this.getClass().getClassLoader());
+        } catch (
+                Exception e) {
             Utils.LOGGER.debug("Couldn't get the classloader.");
             return null;
         }
+
     }
+
 
     /**
      * 将生成的文件复制到源目录中
@@ -216,7 +236,9 @@ public class FlyrafterExecutor {
         compileFiles.forEach(compileFile -> {
             sourceFiles.forEach(sourceFile -> {
                 try {
-                    FileUtils.copyDirectory(compileFile, sourceFile);
+                    if (compileFile.isDirectory() && compileFile.exists()) {
+                        FileUtils.copyDirectory(compileFile, sourceFile);
+                    }
                 } catch (IOException e) {
                     Utils.LOGGER.error("copy sql to source folder fail.");
                 }
