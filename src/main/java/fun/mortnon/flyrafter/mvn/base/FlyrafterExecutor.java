@@ -62,9 +62,10 @@ public class FlyrafterExecutor {
                     configurationMap.putAll(map);
                 }
             });
+            if (configurationMap.size() == 0) {
+                Utils.LOGGER.info("get none application configuration file.");
+            }
             executeFlyRafter(configurationMap);
-        } else {
-            Utils.LOGGER.info("get none application configuration file.");
         }
     }
 
