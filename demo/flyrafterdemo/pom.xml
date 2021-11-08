@@ -54,22 +54,10 @@
 			<scope>provided</scope>
 		</dependency>
 
-<!--		<dependency>-->
-<!--			<groupId>fun.mortnon</groupId>-->
-<!--			<artifactId>flyrafter</artifactId>-->
-<!--			<version>0.0.1</version>-->
-<!--		</dependency>-->
-
 		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-core</artifactId>
-			<version>${flyway.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>jakarta.persistence</groupId>
-			<artifactId>jakarta.persistence-api</artifactId>
-			<version>${jpa.version}</version>
+			<groupId>fun.mortnon</groupId>
+			<artifactId>flyrafter</artifactId>
+			<version>0.0.6</version>
 		</dependency>
 
 		<dependency>
