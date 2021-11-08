@@ -1,5 +1,6 @@
 package com.example.demo.entity;
 
+import fun.mortnon.flyrafter.annotation.Ignore;
 import lombok.Data;
 
 import javax.persistence.Column;
@@ -18,4 +19,7 @@ public class EntitySub extends EntityParent{
 
     @Column(columnDefinition = "varchar(321) not null")
     private String name;
+
+    @Ignore
+    private String s1;
 }

@@ -6,7 +6,7 @@
 
     <groupId>fun.mortnon</groupId>
     <artifactId>flyrafter-maven-plugin</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.6</version>
     <packaging>maven-plugin</packaging>
 
     <name>${project.artifactId}</name>
@@ -124,7 +124,7 @@
         <maven.version>3.3.9</maven.version>
         <mvn.version>3.8.1</mvn.version>
         <mvn.annotations.version>3.6.1</mvn.annotations.version>
-        <flyrafter.version>0.0.5</flyrafter.version>
+        <flyrafter.version>0.0.6</flyrafter.version>
         <snakeyaml.version>1.28</snakeyaml.version>
         <mysql.version>8.0.24</mysql.version>
         <dbcp.version>2.8.0</dbcp.version>

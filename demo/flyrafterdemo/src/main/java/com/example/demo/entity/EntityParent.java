@@ -7,9 +7,7 @@ import javax.persistence.MappedSuperclass;
  * @author Moon Wu
  * @date 2021/5/8
  */
-@MappedSuperclass
-
-public class EntityParent {
+public class EntityParent extends EntityParent2{
     @Id
     private Long id;
 }
